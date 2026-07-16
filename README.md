@@ -23,14 +23,16 @@ The app runs without Supabase configured — you'll see setup guidance instead o
 
 2. **Create the tables.** Open the project's **SQL Editor → New query**, paste the contents of [`supabase/schema.sql`](supabase/schema.sql), and run it. This creates four tables (`profiles`, `card_reviews`, `quiz_attempts`, `study_sessions`), enables row-level security on each, and adds a trigger that creates a profile row on signup. The script is idempotent — safe to re-run.
 
-3. **Copy your keys.** In **Settings → API**, copy the Project URL and the `anon` public key into `.env.local`:
+3. **Copy your keys.** In **Settings → API Keys**, copy the Project URL and the **publishable** key into `.env.local`:
 
    ```
    NEXT_PUBLIC_SUPABASE_URL=https://xxxxxxxx.supabase.co
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhb...
+   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
    ```
 
-   The anon key is meant to be public — it ships to the browser, and row-level security is what actually protects the data. Never put the `service_role` key in this file.
+   Older projects show a legacy JWT anon key (`eyJhb…`) instead. That still works — name it `NEXT_PUBLIC_SUPABASE_ANON_KEY` and the app will pick it up either way.
+
+   Either key is meant to be public — it ships to the browser, and row-level security is what actually protects the data. Never put the secret key (`sb_secret_…` / `service_role`) in this file.
 
 4. **Restart the dev server** and sign up at `/signup`.
 
@@ -54,7 +56,7 @@ vercel
 
 Or push to GitHub and import the repo at [vercel.com/new](https://vercel.com/new). Either way:
 
-1. Add both environment variables (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`) in **Project Settings → Environment Variables**, for all environments.
+1. Add both environment variables (`NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, or `NEXT_PUBLIC_SUPABASE_ANON_KEY` on older projects) in **Project Settings → Environment Variables**, for all environments.
 2. Redeploy so the build picks them up.
 3. Add your Vercel URL to Supabase's redirect allow-list as described above.
 

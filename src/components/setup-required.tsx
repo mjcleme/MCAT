@@ -31,7 +31,8 @@ export function SetupRequired() {
           in the project&apos;s SQL Editor.
         </Step>
         <Step n={3}>
-          Copy the Project URL and anon key from Settings → API into{" "}
+          Copy the Project URL and publishable key from Settings → API Keys
+          into{" "}
           <code className="rounded bg-slate-100 px-1 dark:bg-slate-800">
             .env.local
           </code>
@@ -42,8 +43,17 @@ export function SetupRequired() {
 
       <pre className="mt-6 overflow-x-auto rounded-xl bg-slate-900 p-4 text-xs leading-relaxed text-slate-100">
         {`NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhb...`}
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...`}
       </pre>
+
+      <p className="mt-3 text-xs text-[--color-muted]">
+        Older projects show a legacy anon key (<code>eyJhb…</code>) instead —
+        name it{" "}
+        <code className="rounded bg-slate-100 px-1 dark:bg-slate-800">
+          NEXT_PUBLIC_SUPABASE_ANON_KEY
+        </code>{" "}
+        and it works the same.
+      </p>
 
       <p className="mt-4 text-xs text-[--color-muted]">
         The README walks through the same steps, including Vercel deployment.
