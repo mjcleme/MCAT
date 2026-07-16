@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { Nav } from "@/components/nav";
+import { approximatePercentile } from "@/lib/exam-scoring";
 import {
   Card,
   EmptyState,
@@ -27,11 +29,20 @@ export default async function DashboardPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login?next=/dashboard");
 
-  const [reviews, attempts, streak] = await Promise.all([
+  const [reviews, attempts, streak, examResult] = await Promise.all([
     getReviews(user.id),
     getAttempts(user.id, 10),
     getStreak(user.id),
+    supabase
+      .from("exam_attempts")
+      .select("id, total_scaled, completed_at")
+      .eq("user_id", user.id)
+      .order("completed_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ]);
+
+  const latestExam = examResult.data;
 
   const bySection = SECTIONS.map((s) => summarizeSection(s.id, reviews));
   const totalDue = bySection.reduce((sum, s) => sum + s.due, 0);
@@ -83,6 +94,44 @@ export default async function DashboardPage() {
             value={streak > 0 ? `${streak}🔥` : "0"}
             hint={streak === 1 ? "1 day" : `${streak} days`}
           />
+        </section>
+
+        <section className="mt-4">
+          {latestExam ? (
+            <Link
+              href={`/exam/results/${latestExam.id}`}
+              className="flex flex-wrap items-center gap-4 rounded-2xl border border-[--color-border] bg-[--color-card] p-5 shadow-sm transition-colors hover:border-sky-400"
+            >
+              <div>
+                <p className="text-sm text-[--color-muted]">
+                  Latest diagnostic score
+                </p>
+                <p className="mt-1 text-3xl font-semibold tabular-nums">
+                  {latestExam.total_scaled}
+                  <span className="ml-2 text-sm font-normal text-[--color-muted]">
+                    ≈ {approximatePercentile(latestExam.total_scaled)}th
+                    percentile
+                  </span>
+                </p>
+              </div>
+              <span className="ml-auto text-sm text-sky-600">
+                View full report →
+              </span>
+            </Link>
+          ) : (
+            <Card className="flex flex-wrap items-center gap-4 p-5">
+              <div>
+                <p className="font-medium">Haven&apos;t taken a diagnostic yet</p>
+                <p className="mt-1 text-sm text-[--color-muted]">
+                  120 questions, ~3h15m of testing, scored 472–528. The fastest
+                  way to find out which section is actually costing you.
+                </p>
+              </div>
+              <LinkButton href="/exam" className="ml-auto">
+                Take the exam
+              </LinkButton>
+            </Card>
+          )}
         </section>
 
         <div className="mt-10 grid gap-8 lg:grid-cols-3">

@@ -7,6 +7,7 @@ import {
   ALL_QUIZZES,
   cardsForSection,
 } from "@/data";
+import { DIAGNOSTIC_EXAM, examQuestionCount } from "@/data/exam";
 import { isSupabaseConfigured } from "@/lib/config";
 
 export default function Home() {
@@ -18,7 +19,8 @@ export default function Home() {
 
         <section className="mx-auto max-w-3xl text-center">
           <p className="text-sm font-medium text-sky-600">
-            {TOTAL_CARDS} flashcards · {TOTAL_QUESTIONS} practice questions
+            {TOTAL_CARDS} flashcards · {TOTAL_QUESTIONS} practice questions ·{" "}
+            {examQuestionCount(DIAGNOSTIC_EXAM)}-question diagnostic exam
           </p>
           <h1 className="mt-4 text-4xl font-bold tracking-tight sm:text-5xl">
             Study for the MCAT without losing track of what you know
@@ -67,8 +69,8 @@ export default function Home() {
             body="Each question explains why the right answer is right and why the tempting wrong one pulled you — the part that actually moves your score."
           />
           <Feature
-            title="Progress you can see"
-            body="Section-by-section mastery, quiz history, and a study streak, all tied to your account and synced across devices."
+            title="A timed diagnostic exam"
+            body="120 questions at real MCAT pacing, with section timers, flagging, and breaks. Scored 472–528 so you can see which section is actually costing you."
           />
         </section>
       </main>

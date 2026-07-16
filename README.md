@@ -3,8 +3,9 @@
 A spaced-repetition flashcard and practice-quiz app for the MCAT, built with Next.js 16, Supabase auth, and Tailwind. Deploys to Vercel.
 
 - **303 flashcards** and **101 practice questions** across all four sections (Bio/Biochem, Chem/Phys, Psych/Soc, CARS)
+- **A 120-question timed diagnostic exam** with section timers, flagging, breaks, and a 472–528 scaled score
 - **SM-2 spaced repetition** — cards you find hard resurface sooner; cards you know get out of the way
-- **Real accounts** via Supabase, so card schedules and quiz history sync across devices
+- **Real accounts** via Supabase, so card schedules and exam history sync across devices
 - **CARS passages** with original prose and explanations that name the trap in each distractor
 
 ## Quick start
@@ -21,7 +22,9 @@ The app runs without Supabase configured — you'll see setup guidance instead o
 
 1. **Create a project** at [supabase.com/dashboard](https://supabase.com/dashboard). Any region, free tier.
 
-2. **Create the tables.** Open the project's **SQL Editor → New query**, paste the contents of [`supabase/schema.sql`](supabase/schema.sql), and run it. This creates four tables (`profiles`, `card_reviews`, `quiz_attempts`, `study_sessions`), enables row-level security on each, and adds a trigger that creates a profile row on signup. The script is idempotent — safe to re-run.
+2. **Create the tables.** Open the project's **SQL Editor → New query**, paste the contents of [`supabase/schema.sql`](supabase/schema.sql), and run it. This creates five tables (`profiles`, `card_reviews`, `quiz_attempts`, `exam_attempts`, `study_sessions`), enables row-level security on each, and adds a trigger that creates a profile row on signup.
+
+   **The script is idempotent — re-run the whole file whenever you pull changes.** It uses `create table if not exists` and drops/recreates policies, so it will add anything new without disturbing existing data. `exam_attempts` was added along with the diagnostic exam; if you set up before that, re-running is what creates it.
 
 3. **Copy your keys.** In **Settings → API Keys**, copy the Project URL and the **publishable** key into `.env.local`:
 
@@ -82,7 +85,17 @@ The study queue puts never-seen cards first, then overdue cards by how long they
 
 ### Grading
 
-Quizzes are graded in `submitQuiz` on the server against the canonical answer key — the client only submits which options were chosen.
+Quizzes and exams are graded on the server (`submitQuiz`, `submitExam`) against the canonical answer key — the client only submits which options were chosen.
+
+### The diagnostic exam
+
+120 questions (30 per section) timed at real MCAT pacing: ~1.6 min per science question, ~1.7 for CARS, with 10-minute breaks between sections. Sections auto-advance when the clock expires and cannot be reopened.
+
+**Answer balancing** (`src/lib/exam-balance.ts`) is worth knowing about. Written naturally, correct answers cluster badly — the first draft put 63% of them at B and exactly one at D, which a test-wise student could exploit without knowing any content. Each question's options are permuted to a target slot derived from a hash of its id, and the letter references inside explanations ("Choice A is wrong") are remapped to match. It's deterministic by question id, so letters stay stable across retakes and deploys — **never randomize it at request time**, since stored attempts record option indices.
+
+**The scaled score is an approximation**, and the UI says so. The AAMC equates its raw→scaled curve per administration and never publishes it, and this test is half-length. The anchors in `src/lib/exam-scoring.ts` are fitted so ~65% correct lands near 125 (the historical median, where ~500 total sits at roughly the 47th percentile). It's useful for spotting a weak section; it is not a score prediction.
+
+**In-progress state lives in localStorage** (`src/lib/exam-progress.ts`), written on every answer, so a refresh or a crashed tab doesn't destroy a four-hour sitting. Section deadlines are stored as absolute timestamps rather than remaining seconds — a countdown held in memory would silently reset on reload and hand back time.
 
 ## Adding content
 
@@ -110,11 +123,18 @@ src/
     dashboard/        Progress overview
     flashcards/       Section list + study session
     quiz/             Quiz list + runner
-  components/         UI primitives, flashcard session, quiz runner
-  data/               Flashcard and quiz content
+    exam/             Diagnostic intro, runner, score report
+  components/         UI primitives, flashcard session, quiz + exam runners
+  data/
+    flashcards/       Flashcard content
+    quizzes/          Short quiz content
+    exam/             Diagnostic exam content (120 questions)
   lib/
     srs.ts            SM-2 scheduling
     progress.ts       Progress queries and aggregation
+    exam-scoring.ts   Raw → scaled (118–132) conversion, percentiles
+    exam-balance.ts   Answer-position balancing + explanation letter remapping
+    exam-progress.ts  localStorage persistence, timers, section state machine
     supabase/         Browser and server clients
   proxy.ts            Session refresh + route protection
 supabase/schema.sql   Tables, RLS policies, signup trigger
@@ -126,7 +146,15 @@ supabase/schema.sql   Tables, RLS policies, signup trigger
 npm run dev      # dev server
 npm run build    # production build
 npm run lint     # eslint
+npm run verify   # content integrity, scoring, and exam-state checks
 ```
+
+`npm run verify` is worth running before you commit new content. It checks that
+ids are unique, every question has four options and a valid answer index, exam
+answers aren't clustered on one letter, the balancing transform preserves the
+correct answer's text, and the exam timer state machine terminates. See
+[`scripts/README.md`](scripts/README.md) for what each script covers and the two
+bugs that motivated them.
 
 ---
 

@@ -19,6 +19,7 @@ export async function Nav() {
             <NavLink href="/dashboard">Dashboard</NavLink>
             <NavLink href="/flashcards">Flashcards</NavLink>
             <NavLink href="/quiz">Quizzes</NavLink>
+            <NavLink href="/exam">Practice Exam</NavLink>
           </div>
         )}
 
