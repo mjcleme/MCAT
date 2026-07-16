@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { siteOrigin } from "@/lib/config";
 
 export type AuthState = { error?: string; message?: string };
 
@@ -48,7 +49,7 @@ export async function signup(
     return { error: "Use a password of at least 8 characters." };
   }
 
-  const origin = (await headers()).get("origin");
+  const origin = siteOrigin((await headers()).get("origin"));
   const supabase = await createClient();
 
   const { data, error } = await supabase.auth.signUp({
