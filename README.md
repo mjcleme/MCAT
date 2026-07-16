@@ -2,7 +2,7 @@
 
 A spaced-repetition flashcard and practice-quiz app for the MCAT, built with Next.js 16, Supabase auth, and Tailwind. Deploys to Vercel.
 
-- **303 flashcards** and **101 practice questions** across all four sections (Bio/Biochem, Chem/Phys, Psych/Soc, CARS)
+- **606 flashcards** and **101 practice questions** across all four sections (Bio/Biochem, Chem/Phys, Psych/Soc, CARS)
 - **A 120-question timed diagnostic exam** with section timers, flagging, breaks, and a 472–528 scaled score
 - **A missed-question review loop** — everything you've ever gotten wrong, tagged by why you missed it, retestable until it sticks
 - **SM-2 spaced repetition** — cards you find hard resurface sooner; cards you know get out of the way

@@ -27,9 +27,13 @@ check("no orphan tags", orphans.length === 0, orphans.slice(0, 8).join(", "));
 
 console.log("\n--- Tags reuse the flashcard vocabulary where cards exist ---");
 // A tag that doesn't match any flashcard topic can't route a student to cards.
-// "Research Methods" is a known, documented gap — assert it stays the only one,
-// so a typo like "Aminoacids" fails instead of silently orphaning a topic.
-const KNOWN_GAPS = new Set(["Research Methods"]);
+// Gaps listed here are tolerated; everything else must match, so a typo like
+// "Aminoacids" fails instead of silently orphaning a topic.
+//
+// This set is currently empty: "Research Methods" lived here until the deck was
+// expanded to cover it. The check below fails if a listed gap acquires cards,
+// which is what forced this cleanup rather than letting the exemption rot.
+const KNOWN_GAPS = new Set<string>([]);
 const vocab = new Map<SectionId, Set<string>>();
 for (const s of ["bb", "cp", "ps", "cars"] as const) {
   vocab.set(s, new Set(topicsForSection(s)));

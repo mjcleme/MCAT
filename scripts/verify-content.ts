@@ -20,6 +20,28 @@ for (const c of ALL_CARDS) {
   check(`card ${c.id} has topic`, c.topic.trim().length > 0);
 }
 
+// Near-duplicate detection: at 600+ cards it is easy to write the same card
+// twice under different ids, which quietly corrupts the SRS (two schedules for
+// one fact) and wastes the student's time.
+const norm = (t: string) =>
+  t.toLowerCase().replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, " ").trim();
+
+const frontSeen = new Map<string, string>();
+for (const c of ALL_CARDS) {
+  const key = norm(c.front);
+  const prior = frontSeen.get(key);
+  check(`card ${c.id} front is not a duplicate of ${prior}`, !prior, prior ? `"${c.front.slice(0, 60)}"` : "");
+  frontSeen.set(key, c.id);
+}
+
+const backSeen = new Map<string, string>();
+for (const c of ALL_CARDS) {
+  const key = norm(c.back);
+  const prior = backSeen.get(key);
+  check(`card ${c.id} back is not a duplicate of ${prior}`, !prior, prior ? `"${c.back.slice(0, 60)}"` : "");
+  backSeen.set(key, c.id);
+}
+
 const qIds = ALL_QUIZZES.flatMap((q) => q.questions.map((x) => x.id));
 check("no duplicate question ids", new Set(qIds).size === qIds.length);
 check("no duplicate quiz ids", new Set(ALL_QUIZZES.map((q) => q.id)).size === ALL_QUIZZES.length);
