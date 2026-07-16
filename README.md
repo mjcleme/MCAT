@@ -4,6 +4,7 @@ A spaced-repetition flashcard and practice-quiz app for the MCAT, built with Nex
 
 - **303 flashcards** and **101 practice questions** across all four sections (Bio/Biochem, Chem/Phys, Psych/Soc, CARS)
 - **A 120-question timed diagnostic exam** with section timers, flagging, breaks, and a 472–528 scaled score
+- **A missed-question review loop** — everything you've ever gotten wrong, tagged by why you missed it, retestable until it sticks
 - **SM-2 spaced repetition** — cards you find hard resurface sooner; cards you know get out of the way
 - **Real accounts** via Supabase, so card schedules and exam history sync across devices
 - **CARS passages** with original prose and explanations that name the trap in each distractor
@@ -22,9 +23,9 @@ The app runs without Supabase configured — you'll see setup guidance instead o
 
 1. **Create a project** at [supabase.com/dashboard](https://supabase.com/dashboard). Any region, free tier.
 
-2. **Create the tables.** Open the project's **SQL Editor → New query**, paste the contents of [`supabase/schema.sql`](supabase/schema.sql), and run it. This creates five tables (`profiles`, `card_reviews`, `quiz_attempts`, `exam_attempts`, `study_sessions`), enables row-level security on each, and adds a trigger that creates a profile row on signup.
+2. **Create the tables.** Open the project's **SQL Editor → New query**, paste the contents of [`supabase/schema.sql`](supabase/schema.sql), and run it. This creates six tables (`profiles`, `card_reviews`, `quiz_attempts`, `exam_attempts`, `question_notes`, `study_sessions`), enables row-level security on each, and adds a trigger that creates a profile row on signup.
 
-   **The script is idempotent — re-run the whole file whenever you pull changes.** It uses `create table if not exists` and drops/recreates policies, so it will add anything new without disturbing existing data. `exam_attempts` was added along with the diagnostic exam; if you set up before that, re-running is what creates it.
+   **The script is idempotent — re-run the whole file whenever you pull changes.** It uses `create table if not exists` and drops/recreates policies, so it will add anything new without disturbing existing data. `exam_attempts` arrived with the diagnostic exam and `question_notes` with the review loop; re-running is what creates them.
 
 3. **Copy your keys.** In **Settings → API Keys**, copy the Project URL and the **publishable** key into `.env.local`:
 
@@ -86,6 +87,20 @@ The study queue puts never-seen cards first, then overdue cards by how long they
 ### Grading
 
 Quizzes and exams are graded on the server (`submitQuiz`, `submitExam`) against the canonical answer key — the client only submits which options were chosen.
+
+### The review loop
+
+The highest-leverage MCAT habit is reviewing what you got wrong and naming *why*, so `/review` collects every missed question from every quiz and exam, lets you tag the cause (didn't know it / misread / rushed / fell for the distractor / blind guess), and retests only those. Get one right and it clears; miss it again and it stays.
+
+**The miss list is derived, never stored.** `quiz_attempts.answers` and `exam_attempts.answers` already record every response, so `lib/review.ts` reconstructs the list from them. That keeps one source of truth and means the feature works retroactively — attempts from before it existed show up too. `question_notes` stores only what can't be derived: the cause you diagnosed and whether a retest cleared it.
+
+**Client/server split matters here.** `lib/review.ts` imports the server Supabase client, which pulls in `next/headers`. Client components need `CAUSE_LABELS` at runtime, so importing it from there drags server-only code into the browser bundle and fails the build — which it did, once. Anything a client component touches lives in `lib/review-types.ts`.
+
+### Topic tagging
+
+`src/data/question-topics.ts` maps every quiz and exam question id to a topic drawn from the same vocabulary the flashcards use, which is what lets a missed question route you to the cards covering it. Flashcards carry their topic inline; questions don't, so the tags live in one map rather than across 221 objects in six files. The tradeoff is that adding a question means editing two files — `npm run verify` fails on any untagged question, which is what keeps that honest.
+
+`Research Methods` is the one tag with no flashcards behind it. That's a real content gap, not an oversight: Psych/Soc tests study design heavily and the deck doesn't cover it. The verify script asserts it stays the *only* such gap, so a typo can't silently orphan a topic.
 
 ### The diagnostic exam
 

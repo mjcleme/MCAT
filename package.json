@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "verify": "tsx scripts/verify-content.ts && tsx scripts/verify-exam.ts && tsx scripts/verify-balance.ts && tsx scripts/verify-progress.ts"
+    "verify": "tsx scripts/verify-content.ts && tsx scripts/verify-exam.ts && tsx scripts/verify-balance.ts && tsx scripts/verify-progress.ts && tsx scripts/verify-topics.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.3",

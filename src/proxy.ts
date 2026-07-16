@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { supabaseKey, supabaseUrl } from "@/lib/config";
 
 /** Routes that require a signed-in user. */
-const PROTECTED_PREFIXES = ["/dashboard", "/flashcards", "/quiz", "/exam"];
+const PROTECTED_PREFIXES = ["/dashboard", "/flashcards", "/quiz", "/exam", "/review"];
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });

@@ -15,11 +15,12 @@ export async function Nav() {
         </Link>
 
         {user && (
-          <div className="hidden items-center gap-1 text-sm sm:flex">
-            <NavLink href="/dashboard">Dashboard</NavLink>
-            <NavLink href="/flashcards">Flashcards</NavLink>
-            <NavLink href="/quiz">Quizzes</NavLink>
-            <NavLink href="/exam">Practice Exam</NavLink>
+          <div className="hidden items-center gap-1 text-sm lg:flex">
+            {LINKS.map((l) => (
+              <NavLink key={l.href} href={l.href}>
+                {l.label}
+              </NavLink>
+            ))}
           </div>
         )}
 
@@ -47,9 +48,38 @@ export async function Nav() {
           )}
         </div>
       </nav>
+
+      {/*
+        Below lg the links don't fit on one row. Rather than hide them behind a
+        menu — which is how the practice exam became unreachable on phones —
+        they wrap onto a second, horizontally scrollable row.
+      */}
+      {user && (
+        <div className="border-t border-[--color-border] lg:hidden">
+          <div className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-2 py-1.5 text-sm">
+            {LINKS.map((l) => (
+              <Link
+                key={l.href}
+                href={l.href}
+                className="shrink-0 rounded-lg px-3 py-1.5 text-[--color-muted] transition-colors hover:bg-slate-100 hover:text-[--color-foreground] dark:hover:bg-slate-800"
+              >
+                {l.short}
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
     </header>
   );
 }
+
+const LINKS = [
+  { href: "/dashboard", label: "Dashboard", short: "Dashboard" },
+  { href: "/flashcards", label: "Flashcards", short: "Cards" },
+  { href: "/quiz", label: "Quizzes", short: "Quizzes" },
+  { href: "/exam", label: "Practice Exam", short: "Exam" },
+  { href: "/review", label: "Review", short: "Review" },
+];
 
 function NavLink({ href, children }: { href: string; children: string }) {
   return (

@@ -125,6 +125,35 @@ create index if not exists exam_attempts_user_idx
   on public.exam_attempts (user_id, completed_at desc);
 
 -- ---------------------------------------------------------------------------
+-- question_notes: why you missed a question, and whether you've since fixed it
+--
+-- The list of missed questions is derived from quiz_attempts and exam_attempts
+-- rather than stored. This table holds only what can't be derived: the cause
+-- the student diagnosed, and whether a retest has since cleared it.
+-- ---------------------------------------------------------------------------
+create table if not exists public.question_notes (
+  user_id     uuid not null references auth.users on delete cascade,
+  question_id text not null,
+  -- Why it was missed. Null until the student tags it.
+  cause       text check (cause in ('content', 'misread', 'pacing', 'trap', 'guess')),
+  -- Set when a retest is answered correctly; cleared if missed again.
+  resolved    boolean not null default false,
+  retest_correct int not null default 0,
+  retest_wrong   int not null default 0,
+  updated_at  timestamptz not null default now(),
+  primary key (user_id, question_id)
+);
+
+alter table public.question_notes enable row level security;
+
+drop policy if exists "own question notes: all" on public.question_notes;
+create policy "own question notes: all" on public.question_notes
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+create index if not exists question_notes_user_idx
+  on public.question_notes (user_id, resolved);
+
+-- ---------------------------------------------------------------------------
 -- study_sessions: lightweight activity log powering the streak counter
 -- ---------------------------------------------------------------------------
 create table if not exists public.study_sessions (
@@ -141,7 +170,7 @@ create table if not exists public.study_sessions (
 -- both new and existing databases.
 alter table public.study_sessions drop constraint if exists study_sessions_kind_check;
 alter table public.study_sessions add constraint study_sessions_kind_check
-  check (kind in ('flashcards', 'quiz', 'exam'));
+  check (kind in ('flashcards', 'quiz', 'exam', 'retest'));
 
 alter table public.study_sessions enable row level security;
 

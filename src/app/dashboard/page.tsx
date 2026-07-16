@@ -18,6 +18,7 @@ import {
   getStreak,
   summarizeSection,
 } from "@/lib/progress";
+import { getMissedQuestions, getTopicWeaknesses } from "@/lib/review";
 import { getQuiz, TOTAL_CARDS } from "@/data";
 
 export const metadata: Metadata = { title: "Dashboard" };
@@ -29,20 +30,28 @@ export default async function DashboardPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login?next=/dashboard");
 
-  const [reviews, attempts, streak, examResult] = await Promise.all([
-    getReviews(user.id),
-    getAttempts(user.id, 10),
-    getStreak(user.id),
-    supabase
-      .from("exam_attempts")
-      .select("id, total_scaled, completed_at")
-      .eq("user_id", user.id)
-      .order("completed_at", { ascending: false })
-      .limit(1)
-      .maybeSingle(),
-  ]);
+  const [reviews, attempts, streak, examResult, weaknesses, missed] =
+    await Promise.all([
+      getReviews(user.id),
+      getAttempts(user.id, 10),
+      getStreak(user.id),
+      supabase
+        .from("exam_attempts")
+        .select("id, total_scaled, completed_at")
+        .eq("user_id", user.id)
+        .order("completed_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      getTopicWeaknesses(user.id),
+      getMissedQuestions(user.id),
+    ]);
 
   const latestExam = examResult.data;
+  const openMisses = missed.filter((m) => !m.note?.resolved);
+
+  // Only topics with enough attempts to mean anything. Two questions at 50%
+  // is noise, and pointing someone at it would waste their time.
+  const weakest = weaknesses.filter((w) => w.seen >= 3 && w.accuracy < 0.8).slice(0, 6);
 
   const bySection = SECTIONS.map((s) => summarizeSection(s.id, reviews));
   const totalDue = bySection.reduce((sum, s) => sum + s.due, 0);
@@ -133,6 +142,67 @@ export default async function DashboardPage() {
             </Card>
           )}
         </section>
+
+        {(openMisses.length > 0 || weakest.length > 0) && (
+          <section className="mt-10">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="font-semibold">What to fix</h2>
+                <p className="mt-1 text-sm text-[--color-muted]">
+                  Reviewing what you got wrong beats doing new questions.
+                </p>
+              </div>
+              {openMisses.length > 0 && (
+                <LinkButton href="/review" size="sm">
+                  Review {openMisses.length} missed
+                </LinkButton>
+              )}
+            </div>
+
+            {weakest.length > 0 ? (
+              <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {weakest.map((w) => {
+                  const meta = getSection(w.section);
+                  const pct = Math.round(w.accuracy * 100);
+                  return (
+                    <Link
+                      key={`${w.section}-${w.topic}`}
+                      href={`/review?topic=${encodeURIComponent(w.topic)}`}
+                      className="rounded-2xl border border-[--color-border] bg-[--color-card] p-5 shadow-sm transition-colors hover:border-sky-400"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className={`h-2 w-2 rounded-full ${meta.dot}`} />
+                        <span className="text-xs text-[--color-muted]">
+                          {meta.shortName}
+                        </span>
+                        <span
+                          className={`ml-auto text-sm font-semibold tabular-nums ${
+                            pct < 50
+                              ? "text-rose-600"
+                              : pct < 70
+                                ? "text-amber-600"
+                                : "text-[--color-muted]"
+                          }`}
+                        >
+                          {pct}%
+                        </span>
+                      </div>
+                      <p className="mt-2 font-medium">{w.topic}</p>
+                      <p className="mt-1 text-xs text-[--color-muted]">
+                        {w.seen - w.missed}/{w.seen} correct
+                      </p>
+                    </Link>
+                  );
+                })}
+              </div>
+            ) : (
+              <Card className="mt-4 p-6 text-sm text-[--color-muted]">
+                No weak topics yet — you need at least three questions in a
+                topic before the number means anything.
+              </Card>
+            )}
+          </section>
+        )}
 
         <div className="mt-10 grid gap-8 lg:grid-cols-3">
           <section className="lg:col-span-2">
