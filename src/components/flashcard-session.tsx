@@ -149,7 +149,22 @@ export function FlashcardSession({ section, queue, reviews }: Props) {
         </span>
       </div>
 
-      <div className="flip-scene h-[22rem] sm:h-80">
+      <div
+        className="flip-scene h-[22rem] cursor-pointer sm:h-80"
+        role="button"
+        tabIndex={0}
+        aria-pressed={flipped}
+        aria-label={flipped ? "Answer shown — activate to show the question" : "Question shown — activate to show the answer"}
+        onClick={() => setFlipped((f) => !f)}
+        onKeyDown={(e) => {
+          // Space is handled globally; Enter needs handling here so the card
+          // behaves like the button its role advertises.
+          if (e.key === "Enter") {
+            e.preventDefault();
+            setFlipped((f) => !f);
+          }
+        }}
+      >
         <div className={`flip-inner ${flipped ? "is-flipped" : ""}`}>
           <CardFace
             side="front"
@@ -177,10 +192,14 @@ export function FlashcardSession({ section, queue, reviews }: Props) {
 
       <div className="mt-6">
         {!flipped ? (
-          <Button size="lg" className="w-full" onClick={() => setFlipped(true)}>
+          <Button
+            size="lg"
+            className="w-full"
+            onClick={() => setFlipped(true)}
+          >
             Show answer
             <kbd className="ml-1 rounded bg-white/20 px-1.5 py-0.5 text-xs">
-              space
+              space or click the card
             </kbd>
           </Button>
         ) : (
